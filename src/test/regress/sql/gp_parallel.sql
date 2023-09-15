@@ -39,6 +39,25 @@ set search_path to test_parallel;
 -- set this to default in case regress change it by gpstop.
 set gp_appendonly_insert_files = 4;
 
+-- CBDB(#131): test parallel_workers during create AO/AOCO table take effect
+begin;
+set local enable_parallel = on;
+create table test_131_ao1(x int, y int) using ao_row with(parallel_workers=2);
+create table test_131_ao2(x int, y int) using ao_row with(parallel_workers=2);
+create table test_131_ao3(x int, y int) using ao_row with(parallel_workers=0);
+create table test_131_ao4(x int, y int) using ao_row with(parallel_workers=0);
+create table test_131_aoco1(x int, y int) using ao_column with(parallel_workers=2);
+create table test_131_aoco2(x int, y int) using ao_column with(parallel_workers=2);
+create table test_131_aoco3(x int, y int) using ao_column with(parallel_workers=0);
+create table test_131_aoco4(x int, y int) using ao_column with(parallel_workers=0);
+
+select relname, reloptions from pg_catalog.pg_class where relname like 'test_131_ao%';
+explain(locus, costs off) select count(*) from test_131_ao1, test_131_ao2 where test_131_ao1.x = test_131_ao2.x;
+explain(locus, costs off) select count(*) from test_131_ao3, test_131_ao4 where test_131_ao3.x = test_131_ao4.x;
+explain(locus, costs off) select count(*) from test_131_aoco1, test_131_aoco2 where test_131_aoco1.x = test_131_aoco2.x;
+explain(locus, costs off) select count(*) from test_131_aoco3, test_131_aoco4 where test_131_aoco3.x = test_131_aoco4.x;
+abort;
+
 create table ao1(x int, y int) with(appendonly=true);
 create table ao2(x int, y int) with(appendonly=true);
 create table aocs1(x int, y int) with(appendonly=true, orientation=column);
@@ -560,6 +579,23 @@ abort;
 --
 -- End of Test locus after eliding mtion node.
 --
+
+--
+-- Test outer path has Motion of parallel plan. 
+--
+begin;
+create table t1(a int, b int) with(parallel_workers=3);
+create table t2(b int, a int) with(parallel_workers=2);
+insert into t1 select i, i+1 from generate_series(1, 10) i;
+insert into t2 select i, i+1 from generate_series(1, 5) i;
+analyze t1;
+analyze t2;
+set local optimizer=off;
+set local enable_parallel=on;
+set local enable_parallel_hash=off;
+set local max_parallel_workers_per_gather= 4;
+explain(costs off) select * from t1 right join t2 on t1.b = t2.a;
+abort;
 
 -- start_ignore
 drop schema test_parallel cascade;
