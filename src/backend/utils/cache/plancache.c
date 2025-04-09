@@ -123,6 +123,8 @@ static void PlanCacheSysCallback(Datum arg, int cacheid, uint32 hashvalue);
 /* GUC parameter */
 int			plan_cache_mode;
 
+bool		splan_tree_cache;
+
 /*
  * InitPlanCache: initialize module during InitPostgres.
  *
@@ -1044,6 +1046,9 @@ BuildCachedPlan(CachedPlanSource *plansource, List *qlist,
 	plan->is_oneshot = plansource->is_oneshot;
 	plan->is_saved = false;
 	plan->is_valid = true;
+	plan->splan = NULL;
+	plan->splan_len = 0;
+	plan->splan_len_uncompressed = 0;
 
 	/* assign generation number to new plan */
 	plan->generation = ++(plansource->generation);
@@ -1383,6 +1388,14 @@ ReleaseCachedPlan(CachedPlan *plan, ResourceOwner owner)
 	{
 		/* Mark it no longer valid */
 		plan->magic = 0;
+
+		if (plan->splan)
+		{
+			pfree(plan->splan);
+			plan->splan = NULL;
+		}
+		plan->splan_len = 0;
+		plan->splan_len_uncompressed = 0;
 
 		/* One-shot plans do not own their context, so we can't free them */
 		if (!plan->is_oneshot)

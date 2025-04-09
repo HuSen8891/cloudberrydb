@@ -39,6 +39,7 @@ typedef enum
 
 /* GUC parameter */
 extern int	plan_cache_mode;
+extern bool	splan_tree_cache;
 
 #define CACHEDPLANSOURCE_MAGIC		195726186
 #define CACHEDPLAN_MAGIC			953717834
@@ -162,6 +163,9 @@ typedef struct CachedPlan
 	int			generation;		/* parent's generation number for this plan */
 	int			refcount;		/* count of live references to this struct */
 	MemoryContext context;		/* context containing this CachedPlan */
+	char		*splan;			/* serialized plan tree for this cached plan */
+	int			splan_len;		/* serialized plan tree length */
+	int			splan_len_uncompressed; /* serialized plan tree original length */
 } CachedPlan;
 
 /*

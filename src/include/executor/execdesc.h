@@ -322,6 +322,7 @@ typedef struct QueryDesc
 	uint64		es_processed;	/* # of tuples processed */
 	bool		extended_query;   /* simple or extended query protocol? */
 	char		*portal_name;	/* NULL for unnamed portal */
+	CachedPlan 	*cplan;			/* Cached plan if any, or NULL */
 
 	QueryDispatchDesc *ddesc;
 

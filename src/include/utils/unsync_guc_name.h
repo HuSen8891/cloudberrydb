@@ -536,6 +536,7 @@
 		"shared_buffers",
 		"shared_memory_type",
 		"shared_preload_libraries",
+		"splan_tree_cache",
 		"sql_inheritance",
 		"ssl",
 		"ssl_ca_file",

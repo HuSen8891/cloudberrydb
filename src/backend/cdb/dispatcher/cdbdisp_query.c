@@ -644,7 +644,31 @@ cdbdisp_buildPlanQueryParms(struct QueryDesc *queryDesc,
 	 * (corresponding to an initPlan or the main plan), so the parameters are
 	 * fixed and we can include them in the prefix.
 	 */
-	splan = serializeNode((Node *) queryDesc->plannedstmt, &splan_len, &splan_len_uncompressed);
+	if (queryDesc->cplan)
+	{
+		Assert(list_length(queryDesc->cplan->stmt_list) == 1);
+
+		/* reuse the serialized plan tree. */
+		if (queryDesc->cplan->splan)
+		{
+			Assert(queryDesc->cplan->splan_len);
+			Assert(queryDesc->cplan->splan_len_uncompressed);
+			splan = queryDesc->cplan->splan;
+			splan_len = queryDesc->cplan->splan_len;
+			splan_len_uncompressed = queryDesc->cplan->splan_len_uncompressed;
+		}
+		else
+		{
+			splan = serializeNode((Node *) queryDesc->plannedstmt, &splan_len, &splan_len_uncompressed);
+			/* put the serialized plan tree into cache, reuse later. */
+			queryDesc->cplan->splan_len = splan_len;
+			queryDesc->cplan->splan_len_uncompressed = splan_len_uncompressed;
+			queryDesc->cplan->splan = MemoryContextAlloc(queryDesc->cplan->context, splan_len);
+			memcpy(queryDesc->cplan->splan, splan, splan_len);
+		}
+	}
+	else
+		splan = serializeNode((Node *) queryDesc->plannedstmt, &splan_len, &splan_len_uncompressed);
 
 	uint64		plan_size_in_kb = ((uint64) splan_len_uncompressed) / (uint64) 1024;
 

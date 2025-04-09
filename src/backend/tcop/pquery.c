@@ -118,6 +118,7 @@ CreateQueryDesc(PlannedStmt *plannedstmt,
 	qd->extended_query = false; /* default value */
 	qd->portal_name = NULL;
 	qd->showstatctx = NULL;
+	qd->cplan = NULL;
 
 	qd->ddesc = NULL;
 
@@ -231,6 +232,13 @@ ProcessQuery(Portal portal,
 	}
 
 	portal->status = PORTAL_ACTIVE;
+
+	if (splan_tree_cache && portal->is_extended_query &&
+		portal->cplan && list_length(portal->stmts) == 1)
+	{
+		Assert(list_length(portal->cplan->stmt_list) == 1);
+		queryDesc->cplan = portal->cplan;
+	}
 
 	/*
 	 * Call ExecutorStart to prepare the plan for execution
@@ -662,6 +670,8 @@ PortalStart(Portal portal, ParamListInfo params,
 				{
 					queryDesc->extended_query = true;
 					queryDesc->portal_name = (portal->name ? pstrdup(portal->name) : (char *) NULL);
+					if (splan_tree_cache)
+						queryDesc->cplan = portal->cplan;
 				}
 
 				if (PortalIsParallelRetrieveCursor(portal))

@@ -2209,6 +2209,16 @@ static struct config_bool ConfigureNamesBool[] =
 		NULL, NULL, NULL
 	},
 
+	{
+		{"splan_tree_cache", PGC_SIGHUP, CUSTOM_OPTIONS,
+			gettext_noop("Whether to cache the serialized plan tree for query dispatch."),
+			NULL
+		},
+		&splan_tree_cache,
+		false,
+		NULL, NULL, NULL
+	},
+
 	/* End-of-list marker */
 	{
 		{NULL, 0, 0, NULL, NULL}, NULL, false, NULL, NULL, NULL
